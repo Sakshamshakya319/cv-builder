@@ -46,19 +46,53 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV}`);
+// MongoDB Connection with better error handling
+const connectDB = async () => {
+  try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     });
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
+
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`Database: ${conn.connection.name}`);
+    
+    return conn;
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    
+    if (error.message.includes('IP')) {
+      console.error('\n🚨 IP WHITELIST ERROR:');
+      console.error('1. Go to MongoDB Atlas Dashboard');
+      console.error('2. Navigate to Network Access');
+      console.error('3. Add IP Address: 0.0.0.0/0 (Allow from anywhere)');
+      console.error('4. Or add Render\'s IP ranges');
+      console.error('5. Save and wait 2-3 minutes for changes to apply\n');
+    }
+    
+    if (error.message.includes('authentication')) {
+      console.error('\n🚨 AUTHENTICATION ERROR:');
+      console.error('1. Check your MongoDB username and password');
+      console.error('2. Ensure MONGODB_URI is correctly set in environment variables');
+      console.error('3. Verify database user has proper permissions\n');
+    }
+    
     process.exit(1);
+  }
+};
+
+// Start server only after successful DB connection
+connectDB().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
   });
+});
 
 // Error handling middleware
 app.use((error, req, res, next) => {
