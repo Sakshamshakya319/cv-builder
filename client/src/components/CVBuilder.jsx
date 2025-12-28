@@ -6,6 +6,7 @@ import ResumePreview from './ResumePreview';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { API_ENDPOINTS } from '../config/api';
 
 const CVBuilder = ({ userId }) => {
   const [activeTab, setActiveTab] = useState('cv');
@@ -90,7 +91,7 @@ const CVBuilder = ({ userId }) => {
         formData.append('profileImage', cvData.personalInfo.profileImage);
       }
 
-      const response = await axios.post('/api/cv/save', formData, {
+      const response = await axios.post(API_ENDPOINTS.CV.SAVE, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -166,7 +167,7 @@ const CVBuilder = ({ userId }) => {
       
       // Mark as downloaded in backend
       if (savedCvId) {
-        await axios.patch(`/api/cv/${savedCvId}/downloaded`);
+        await axios.patch(API_ENDPOINTS.CV.MARK_DOWNLOADED(savedCvId));
       }
       
       setShowDownloadMenu(false);
